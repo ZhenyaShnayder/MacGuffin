@@ -34,6 +34,7 @@ initial begin
 				 if(permutation != my_p)
 					$error("Permutation was failed: input -%b, tb_output -%b, output -%b", data, my_p, permutation);
 				 data = ~temp; #1
+				 my_p = my_permutation(data)
 				 if(permutation != my_p)
 					$error("Permutation was failed: input -%b, tb_output -%b, output -%b", data, my_p, permutation);
 			end
