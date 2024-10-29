@@ -12,7 +12,6 @@ end
 function logic [47:0] my_permutation(
 		input [47:0] data,
 	);
-		logic [47:0]result;
 		return {
 		data[45], data[42], data[25], data[22], data[4], data[2], 
 		data[46], data[43], data[24], data[21], data[7], data[1],
