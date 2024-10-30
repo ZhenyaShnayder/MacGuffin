@@ -10,7 +10,7 @@ initial begin
 end
 
 function logic [47:0] my_permutation(
-		input [47:0] data,
+		input [47:0] data
 	);
 		return {
 		data[45], data[42], data[25], data[22], data[4], data[2], 
@@ -23,25 +23,26 @@ function logic [47:0] my_permutation(
 		data[36], data[34], data[31], data[27], data[12], data[6]};
 		
 endfunction
+
+	parameter LENGTH = 1 << 48;
+	logic[47:0] temp, my_p;	
 	
 initial begin
-			parameter LENGTH = 1 << 48;
-			logic[47:0] temp = 48'b1;
 			//очевидные тесты
-			for (; temp < LENGTH; temp = temp << 1) begin
+			for (temp = 48'b1; temp < LENGTH; temp = temp << 1) begin
 				 data = temp; #1;
-				 my_p = my_permutation(data)
+				 my_p = my_permutation(data);
 				 if(permutation != my_p)
 					$error("Permutation was failed: input -%b, tb_output -%b, output -%b", data, my_p, permutation);
 				 data = ~temp; #1
-				 my_p = my_permutation(data)
+				 my_p = my_permutation(data);
 				 if(permutation != my_p)
 					$error("Permutation was failed: input -%b, tb_output -%b, output -%b", data, my_p, permutation);
 			end
 			//здесь будут рандомные тесты
 			for(int j=0; j<100; j++) begin
 				 data = $urandom_range(1, 1<<48); #1;
-				 my_p = my_permutation(data)
+				 my_p = my_permutation(data);
 				 if(permutation != my_p)
 					$error("Permutation was failed: input -%b, tb_output -%b, output -%b", data, my_p, permutation);
 			end
