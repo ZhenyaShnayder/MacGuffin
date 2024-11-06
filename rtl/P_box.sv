@@ -25,7 +25,7 @@ module P_box (
   assign permutation[30] = data[44];
 
   assign permutation[29] = data[5];//s4
-  assign permutation[28] = data[1];
+  assign permutation[28] = data[11];
   assign permutation[27] = data[29];
   assign permutation[26] = data[30];
   assign permutation[25] = data[33];
