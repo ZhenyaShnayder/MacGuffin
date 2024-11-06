@@ -14,7 +14,7 @@ module P_box (
   assign permutation[40] = data[7];
   assign permutation[39] = data[21];
   assign permutation[38] = data[24];
-  assign permutation[37] = data[743];
+  assign permutation[37] = data[43];
   assign permutation[36] = data[46];
 
   assign permutation[35] = data[0];//s3
