@@ -10,8 +10,8 @@ initial begin
 	$dumpvars(0, tb_Round);
 end
 
-	//logic[63:0] tb_odata;
-	
+	logic [63:0] tb_odata;
+	integer file;
 initial begin
 	// Открытие файла "tests.txt" для чтения
     	file = $fopen("tests.txt", "r");
@@ -22,10 +22,11 @@ initial begin
 	end
 	for(int j=0; j<320; j++) begin
 		// Чтение строки из файла
-		key = $fgets(file);
-		idata = $fgets(file);
-		if(odata != $fgets(file))
-			$error("Round was failed: plaintext -%b, tb_output -%b, output -%b", idata, tb_odata, odata);
+		$fread(key, file);
+		$fread(idata, file);
+		$fread(tb_odata, file); #1;
+		if(odata != tb_odata)
+			$error("Round was failed: \nplaintext -%b, \ntb_output -%b, \noutput    -%b, \nkey       -%b ,\nxor data  -%b", idata, tb_odata, odata, key, tb_odata^odata);
 	end
 	// Закрытие файла
         $fclose(file);	
