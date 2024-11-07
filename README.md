@@ -1,2 +1,2 @@
-# Systemverilog implementation of MacGuffin block cypher
+# Systemverilog implementation of MacGuffin block cipher
 Welcome, Irusya, Vanya, Zhenya
