@@ -24,8 +24,9 @@ module encryption
   logic valid [round_num];
   logic move [round_num];
 
+  genvar i;
   generate
-    for (genvar i = 0; i < round_num; i++) begin : idk
+    for (i = 0; i < round_num; i = i + 1) begin : idk
       Round Round_inst(
         .idata(block[i]),
         .key(round_keys[i]),
@@ -42,8 +43,8 @@ module encryption
             valid[i] <= s_axis_tvalid;
             block[i] <= s_axis_tdata;
           end else begin
-            valid[i] <= valid[i-1];
-            block[i] <= encr_block[i-1];
+            valid[i] <= valid[i - 1];
+            block[i] <= encr_block[i - 1];
           end
         end
       end
@@ -56,7 +57,7 @@ module encryption
           else
             move[i] = 0;
         end else begin //для остальных слотов конвейера
-          if (move [i+1] || valid[i] == 0)
+          if (move [i + 1] || valid[i] == 0)
             move[i] = 1;
           else
             move[i] = 0;
@@ -65,8 +66,7 @@ module encryption
     end
   endgenerate
   
- 
-    
+  
   assign s_axis_tready = move[0]; // готовы принимать если первый слот конвейера освободится
   assign m_axis_tdata = encr_block[round_num-1];
   assign m_axis_tvalid = valid[round_num-1];

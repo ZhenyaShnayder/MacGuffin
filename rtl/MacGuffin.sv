@@ -1,7 +1,7 @@
 module MacGuffin
 # (
-  parameter round_num = 2, // 32
-  parameter block_size = 4 // 64
+  parameter round_num = 32, // 32
+  parameter block_size = 64 // 64
   )
   (
   input logic rst,
