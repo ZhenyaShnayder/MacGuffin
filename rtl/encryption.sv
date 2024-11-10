@@ -8,11 +8,12 @@ module encryption
   input logic clk,
   input logic [block_size*3/4-1:0] round_keys [round_num],
   
+  //slave AXI4-Stream
   input logic [block_size-1:0] s_axis_tdata,
   input logic s_axis_tvalid,
   output logic s_axis_tready,
   
-  
+  //master AXI4-Stream
   output logic [block_size-1:0] m_axis_tdata,
   output logic m_axis_tvalid,
   input logic m_axis_tready
@@ -25,12 +26,13 @@ module encryption
 
   generate
     for (genvar i = 0; i < round_num; i++) begin : idk
-      round round_inst(
+      Round Round_inst(
         .idata(block[i]),
         .key(round_keys[i]),
         .odata(encr_block[i])
       );
       
+      // механизм движения блоков внутри конвейера
       always @(posedge clk) begin
         if (rst) begin
           valid[i] <= 1'b0;
@@ -46,17 +48,18 @@ module encryption
         end
       end
       
+      // логика разрешения на движение блоков внутри конвейера
       always @(*) begin
-        if (i == round_num - 1) begin
+        if (i == round_num - 1) begin // для последнего слота конвейера
           if (valid[i] == 0 || m_axis_tready)
-            move[i] <= 1;
+            move[i] = 1;
           else
             move[i] = 0;
-        end else begin
+        end else begin //для остальных слотов конвейера
           if (move [i+1] || valid[i] == 0)
-            move[i] <= 1;
+            move[i] = 1;
           else
-            move[i] <= 0;
+            move[i] = 0;
         end
       end
     end
@@ -64,8 +67,7 @@ module encryption
   
  
     
-  //assign ready[32] = m_axis_tready;
-  assign s_axis_tready = ~valid[round_num - 1];
+  assign s_axis_tready = move[0]; // готовы принимать если первый слот конвейера освободится
   assign m_axis_tdata = encr_block[round_num-1];
   assign m_axis_tvalid = valid[round_num-1];
  

@@ -8,10 +8,12 @@ module key_setup
   input logic clk,
   input logic [block_size*2-1:0] key,
   
+  //slave AXI4-Stream
   input logic [block_size-1:0] s_axis_tdata,
   input logic s_axis_tvalid,
   output logic s_axis_tready,
   
+  //master AXI4-Stream
   output logic [block_size-1:0] m_axis_tdata,
   output logic m_axis_tvalid,
   input logic m_axis_tready,
@@ -21,8 +23,9 @@ module key_setup
   
 );
   
+  //Finite state machine states
   localparam [2:0]START = 3'b000, EXP1 = 3'b001, INTER=3'b010, EXP2 = 3'b011, READY = 3'b100;
-  logic [2:0] state = START, next_state = EXP1; // вероятно проблемы с next_state
+  logic [2:0] state = START, next_state = EXP1; // вероятно проблемы с next_state, надо по вейвформе смотреть
   logic [block_size-1:0]block;
   logic [$clog2(round_num)-1:0] counter = '0;
   logic [block_size*3/4-1:0] K [round_num];
@@ -30,32 +33,38 @@ module key_setup
   logic last;
   assign last = &counter;
   
+  // механизм изменения состояний
   always @(posedge clk) begin
     if (rst) state <= START;
     else state <= next_state;
   end
   
+  // логика следующего состояния
   always @(*) begin
     case (state) 
       START: next_state = EXP1;
-      EXP1: if(last) next_state = INTER;
+      EXP1: 
+        if(last) next_state = INTER;
         else next_state = EXP1;
       INTER: next_state = EXP2;
-      EXP2: if(last) next_state = READY;
+      EXP2: 
+        if(last) next_state = READY;
         else next_state = EXP2;
       READY: next_state = READY;
       default: next_state = START;
     endcase
   end
   
-      
-      
-  
+  // механизм генерации ключа
   always @(posedge clk) begin
     if (rst) begin
       counter <= '0;
       block <= '0;
-      // обнулить раундовый ключ
+      m_axis_tvalid <= 0;
+      s_axis_tready <= 0;
+      for(int i=0; i<round_num; i++) begin
+        K[i]='0;
+      end
     end else begin
       case (state)
         START: begin
@@ -70,11 +79,11 @@ module key_setup
             s_axis_tready <= 1;
           end
           if (s_axis_tvalid) begin
+            s_axis_tready <= 0;
             counter <= counter + '1;
             block <= s_axis_tdata;
-            m_axis_tvalid <= 1;
-            s_axis_tready <= 0;
             K[counter] <= {s_axis_tdata[block_size/4-1:0], s_axis_tdata[block_size-1:block_size/2]};
+            m_axis_tvalid <= 1;
           end
         end
         INTER: begin
@@ -89,9 +98,11 @@ module key_setup
             s_axis_tready <= 1;
           end
           if (s_axis_tvalid) begin
+            s_axis_tready <= 0;
             counter <= counter + '1;
             block <= s_axis_tdata;
             K[counter] <= K[counter] ^ {s_axis_tdata[block_size/4-1:0], s_axis_tdata[block_size-1:block_size/2]};
+            m_axis_tvalid <= 1;
           end
         end
         READY: begin
@@ -102,10 +113,7 @@ module key_setup
     end
   end
         
-            
-          
-          
-          
+                
   assign m_axis_tdata = block;
   assign round_keys = K;
   assign key_ready = (state == READY);
