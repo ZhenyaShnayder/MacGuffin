@@ -6,7 +6,7 @@ module encryption
 (
   input logic rst,
   input logic clk,
-  input logic [block_size*3/4-1:0] round_keys [round_num],
+  input logic [round_num][block_size*3/4-1:0] round_keys,
   
   //slave AXI4-Stream
   input logic [block_size-1:0] s_axis_tdata,
