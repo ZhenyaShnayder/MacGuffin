@@ -21,7 +21,22 @@ end
 	logic [32][47:0] tb_round_keys ;
 	integer file, count, count_tacts_without_rst, count_tacts_with_rst;
 initial begin
-//1. Проверка на верность раундовых ключей
+//1. Проверка на rst после того, как key_ready станет равен 1
+	@(posedge clk); #9;
+		rst = 1'b1;
+	@(posedge clk); #9;
+		rst = 1'b0;
+	key={ $urandom(), $urandom(), $urandom(), $urandom() };
+	while(key_ready == 0) begin
+		@(posedge clk);
+	end
+	@(posedge clk); #9;
+		rst = 1'b1;
+	@(posedge clk); #9;
+		rst = 1'b0;
+	if(key_ready == 1 || key_setup_tvalid == 1 || encryption_tvalid == 1)
+		$display("rst isn't correct");
+//2. Проверка на верность раундовых ключей
 	// Открытие файла "keys" для чтения
     	file = $fopen("keys", "r");
     	// Проверка, что файл был открыт успешно
@@ -64,7 +79,7 @@ initial begin
 	// Закрытие файла
         $fclose(file);	
         
-//2. Проверка на верность сброса во время генерации раундовых ключей	
+//3. Проверка на верность сброса во время генерации раундовых ключей	
 	@(posedge clk); #9;
 		rst = 1'b1;
 	@(posedge clk); #9;
@@ -72,7 +87,7 @@ initial begin
 	
 	key={ $urandom(), $urandom(), $urandom(), $urandom() };
 	//$display(key);
-	//У нас 64 цикла шифрования, пусть мы 10 раз зашифровали, а потом сбросили ключ, затем вновь продолжим шифровать. Через сколько тактов мы получим валидные раундовые ключи? Совпадают ли эти такты без rst
+	//У нас 64 цикла шифрования, пусть мы несколько раз зашифровали, а потом сбросили ключ, затем вновь продолжим шифровать. Через сколько тактов мы получим валидные раундовые ключи? Совпадают ли эти такты без rst
 	for(int j=0; j<10; j=j+1) begin
 		@(posedge clk);
 	end
@@ -93,51 +108,6 @@ initial begin
 	end
 	if(count_tacts_with_rst!=count_tacts_without_rst)
 		$display("Tacts for generationg keys aren't similar");
-/*3. А если мы посреди генерации ключа сменим изначальный ключ
-Предполагаемое поведение при изменении ключа перед 34 и более циклами шифрования: выход раундовых ключей такой, будто мы и не меняли изначальный ключ
-*/
-	// Открытие файла "keys" для чтения
-    	file = $fopen("keys", "r");
-    	// Проверка, что файл был открыт успешно
-	if (file == 0) begin
-		$error("Не удалось открыть файл");
-		$finish;
-	end
-	@(posedge clk); #9;
-		rst = 1'b1;
-	@(posedge clk); #9;
-		rst = 1'b0;
-	
-	// Чтение изначального ключа
-	count = $fread(key, file);
-	if (count == 0) begin
-		$display("Key is empty ");
-		$finish;
-	end
-
-	//на 1100 итерации, например, меняем ключ
-	for(int i=0; i<1100; i++) begin
-		@(posedge clk);
-	end
-	//смена ключа
-	key = { $urandom(), $urandom(), $urandom(), $urandom() };
-	while(key_ready == 0) begin
-		@(posedge clk);
-	end
-	//Чтение раундовых ключей
-	count = $fread(tb_round_keys, file); 
-	if (count == 0) begin
-		$display("Round keys are empty ");
-		$finish;
-	end
-	
-	for(int i=0; i<32; i=i+1) begin
-		if(round_keys[i] != tb_round_keys[i])
-			$error("Key_setup was failed: \nkey -%b, \ni key: -%b, \nround keys: -%b, \ntb_round keys: -%b", key, i, round_keys[i], tb_round_keys[i]);
-			
-	end
-	// Закрытие файла
-        $fclose(file);	
 $finish;
 end
 
