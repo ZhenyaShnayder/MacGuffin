@@ -24,8 +24,8 @@ module key_setup
 );
   
   //Finite state machine states
-  localparam [2:0]START = 3'b000, EXP1 = 3'b001, INTER=3'b010, EXP2 = 3'b011, READY = 3'b100;
-  logic [2:0] state = START, next_state = EXP1; // вероятно проблемы с next_state, надо по вейвформе смотреть
+  localparam [2:0]START = 3'b000, DATA_READY1 = 3'b001, PROCESS1 = 3'b010,  INSERT = 3'b011, DATA_READY2 = 3'b100, PROCESS2 = 3'b101, READY = 3'b110;
+  logic [2:0] state = START, next_state = DATA_READY1; // вероятно проблемы с next_state, надо по вейвформе смотреть
   logic [block_size-1:0]block;
   logic [$clog2(round_num)-1:0] counter = '0;
   
@@ -41,14 +41,28 @@ module key_setup
   // логика следующего состояния
   always @(*) begin
     case (state) 
-      START: next_state = EXP1;
-      EXP1: 
-        if(last) next_state = INTER;
-        else next_state = EXP1;
-      INTER: next_state = EXP2;
-      EXP2: 
-        if(last) next_state = READY;
-        else next_state = EXP2;
+      START: next_state = DATA_READY1;
+      DATA_READY1: begin
+        if (m_axis_tready) next_state = PROCESS1;
+        else next_state = DATA_READY1;
+      end
+      PROCESS1: begin
+        if (s_axis_tvalid) begin
+          if (last) next_state = INSERT;
+          else next_state = DATA_READY1;
+        end else next_state = PROCESS1;
+      end
+      INSERT: next_state = DATA_READY2;
+      DATA_READY2: begin
+        if (m_axis_tready) next_state = PROCESS2;
+        else next_state = DATA_READY2;
+      end
+      PROCESS2: begin
+        if (s_axis_tvalid) begin
+          if (last) next_state = READY;
+          else next_state = DATA_READY2;
+        end else next_state = PROCESS2;
+      end
       READY: next_state = READY;
       default: next_state = START;
     endcase
@@ -70,11 +84,13 @@ module key_setup
           m_axis_tvalid <= 1;
           s_axis_tready <= 0;
         end
-        EXP1: begin
-          if (m_axis_tready && m_axis_tvalid) begin
+        DATA_READY1: begin
+          if (m_axis_tready) begin
             m_axis_tvalid <= 0;
             s_axis_tready <= 1;
           end
+        end
+        PROCESS1: begin
           if (s_axis_tvalid) begin
             s_axis_tready <= 0;
             counter <= counter + 5'b1;
@@ -84,17 +100,19 @@ module key_setup
               m_axis_tvalid <= 1;
           end
         end
-        INTER: begin
+        INSERT: begin
           counter <= '0;
           block <= key[block_size-1:0];
           m_axis_tvalid <= 1;
           s_axis_tready <= 0;
         end
-        EXP2: begin
+        DATA_READY2: begin
           if (m_axis_tready) begin
             m_axis_tvalid <= 0;
             s_axis_tready <= 1;
           end
+        end
+        PROCESS2: begin 
           if (s_axis_tvalid) begin
             s_axis_tready <= 0;
             counter <= counter + 5'b1;
