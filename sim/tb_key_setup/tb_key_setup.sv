@@ -22,6 +22,7 @@ end
 	integer file, count, count_tacts_without_rst, count_tacts_with_rst;
 initial begin
 //1. Проверка на rst после того, как key_ready станет равен 1
+
 	@(posedge clk); #9;
 		rst = 1'b1;
 	@(posedge clk); #9;
