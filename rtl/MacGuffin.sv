@@ -1,7 +1,7 @@
 module MacGuffin
 # (
-  parameter round_num = 32, // 32
-  parameter block_size = 64 // 64
+  parameter round_num = 2, // 32
+  parameter block_size = 4 // 64
   )
   (
   input logic rst,
@@ -19,7 +19,7 @@ module MacGuffin
   input logic m_axis_tready
 );
   
-  logic [block_size*3/4-1:0] round_keys [round_num];
+  logic [0:round_num-1][block_size*3/4-1:0] round_keys ;
   logic [block_size-1:0] encr_s_tdata, encr_m_tdata, key_m_tdata;
   logic key_ready;
   logic encr_s_tvalid, encr_m_tvalid, encr_s_tready, encr_m_tready;

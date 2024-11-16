@@ -18,7 +18,7 @@ module key_setup
   output logic m_axis_tvalid,
   input logic m_axis_tready,
 
-  output logic [round_num][block_size*3/4-1:0] round_keys ,
+  output logic [0:round_num-1][block_size*3/4-1:0] round_keys ,
   output logic key_ready
   
 );
