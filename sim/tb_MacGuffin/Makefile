@@ -1,5 +1,5 @@
 DESIGN_NAME=MacGuffin
-SRC_PATH=../rtl
+SRC_PATH=../../rtl
 
 all: synth sim
 
