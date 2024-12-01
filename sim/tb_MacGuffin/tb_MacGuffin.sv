@@ -22,29 +22,29 @@ logic [63:0] fodata;
 integer file, f;
 
 initial begin
-    file = $fopen("cipher_t.bin", "r");
+    file = $fopen("tests.bin", "r");
 	if (file == 0) begin
 		$error("File was NOT opened");
 		$finish;
 	end
 		
-	/*f = $fread(key, file);
+	f = $fread(key, file);
 	if (f == 0) begin
 		$error("Key is empty");
 		$finish;
-	end*/
+	end
 
-	//for(int i = 0; i < 100; i = i + 1) begin
+	for(int i = 0; i < 100; i = i + 1) begin
 		@(posedge clk); #9;
 		rst = 1'b1;
 		@(posedge clk); #9;
 		rst = 1'b0;
 
-		f = $fread(key, file);
+		/*f = $fread(key, file);
 		if (f == 0) begin
 			$error("Key is empty");
 			$finish;
-		end
+		end*/
 
 		f = $fread(idata, file);
 		if (f == 0) begin
@@ -67,7 +67,7 @@ initial begin
 		else 
 			$display("ERROR: input_data: %h \n   key: %h \n  odata_file: %h \n  odata_MacG: %h", idata, key, fodata, odata);
 
-	//end		
+	end		
     $fclose(file); 
 	$finish;
 end
