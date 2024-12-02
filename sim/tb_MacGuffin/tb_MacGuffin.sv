@@ -5,69 +5,73 @@ module tb_MacGuffin;
     logic clk = 0;
     logic [127:0] key;
   
-	logic [63:0] idata;
-	logic in_tvalid;
-	logic in_tready;
+	logic [63:0] s_axis_tdata;
+	logic s_axis_tvalid;
+	logic s_axis_tready;
 
-	logic [63:0] odata;
-	logic out_tvalid;
-	logic out_tready;
+	logic [63:0] m_axis_tdata;
+	logic m_axis_tvalid;
+	logic m_axis_tready;
 
 initial begin
 	$dumpfile("work/wave.ocd");
 	$dumpvars(0, tb_MacGuffin);
 end
 
-logic [63:0] fodata;
 integer file, f;
+logic [63:0] fodata;
 
 initial begin
+	s_axis_tvalid = 1'b0;
+	s_axis_tdata = 1'b0;
+	m_axis_tready = 1'b0;
     file = $fopen("tests.bin", "r");
 	if (file == 0) begin
 		$error("File was NOT opened");
 		$finish;
 	end
 		
+	@(posedge clk); #1;
+	rst = 1'b1;
+	@(posedge clk); #1;
+	rst = 1'b0;
+
+
+//Проверка на корректность зашифрования
+	m_axis_tready = 1;
 	f = $fread(key, file);
 	if (f == 0) begin
 		$error("Key is empty");
 		$finish;
 	end
+	#21155;//время для подготовки раундовых ключей
 
 	for(int i = 0; i < 100; i = i + 1) begin
-		@(posedge clk); #9;
-		rst = 1'b1;
-		@(posedge clk); #9;
-		rst = 1'b0;
+		@(posedge clk);
 
-		/*f = $fread(key, file);
-		if (f == 0) begin
-			$error("Key is empty");
-			$finish;
-		end*/
-
-		f = $fread(idata, file);
+		f = $fread(s_axis_tdata, file);#1;
+		s_axis_tvalid = 1'b1;#1;
 		if (f == 0) begin
 			$error("Input data is empty");
 			$finish;
 		end
-	
-		while(out_tvalid == 0) begin
-			@(posedge clk);
-		end
 
-		f = $fread(fodata, file);
+		f = $fread(fodata, file);#1;
 		if (f == 0) begin
 			$error("Output data is empty");
 			$finish;
 		end
 
-		if(odata == fodata)
-			$display("SUCCESS: input_data: %h \n   key: %h \n  odata_file: %h \n  odata_MacG: %h", idata, key, fodata, odata);
-		else 
-			$display("ERROR: input_data: %h \n   key: %h \n  odata_file: %h \n  odata_MacG: %h", idata, key, fodata, odata);
+		#345;//время на зашифрование одного блока данных
+		if (m_axis_tvalid) begin
+			if(m_axis_tdata == fodata)
+				$display("SUCCESS: input_data: %h \n   odata_file: %h \n  odata_MacG: %h", s_axis_tdata, fodata, m_axis_tdata);
+			else 
+				$display("ERROR: input_data: %h \n   odata_file: %h \n  odata_MacG: %h", s_axis_tdata, fodata, m_axis_tdata);
+		end
 
-	end		
+	end
+
     $fclose(file); 
 	$finish;
 end
@@ -78,12 +82,12 @@ MacGuffin MacGuffin_instance(
 	.rst(rst),
 	.clk(clk),
 	.key(key),
-	.s_axis_tdata(idata),
-	.s_axis_tvalid(in_tvalid),
-	.s_axis_tready(in_tready),
-	.m_axis_tdata(odata),
-	.m_axis_tvalid(out_tvalid),
-	.m_axis_tready(out_tready)
+	.s_axis_tdata(s_axis_tdata),
+    .s_axis_tvalid(s_axis_tvalid),
+    .s_axis_tready(s_axis_tready),
+    .m_axis_tdata(m_axis_tdata),
+    .m_axis_tvalid(m_axis_tvalid),
+    .m_axis_tready(m_axis_tready)
 );
 
 endmodule
