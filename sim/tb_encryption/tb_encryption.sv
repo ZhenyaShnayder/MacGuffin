@@ -150,9 +150,10 @@ module tb_encryption;
                 @(posedge clk);
                 count_read_bytes = $fread(s_axis_tdata, file); #1;
                 s_axis_tvalid <= 1; #1;
+                count_read_bytes = $fread(tb_o, file); #1;                
                 tb_odata.push_back(tb_o); #1;
-                count_read_bytes = $fread(tb_o, file); #1;
-            if (i > 29) begin
+
+            if (i > 30) begin
                 popf = tb_odata.pop_front();
                 if (m_axis_tdata != popf)
                     $display("FAILED %1d", i);
