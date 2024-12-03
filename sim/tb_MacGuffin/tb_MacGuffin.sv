@@ -44,7 +44,8 @@ initial begin
 		$error("Key is empty");
 		$finish;
 	end
-	#21155;//время для подготовки раундовых ключей
+	
+	@(s_axis_tready);//подготовка раундовых ключей
 
 	for(int i = 0; i < 100; i = i + 1) begin
 		@(posedge clk);
@@ -56,13 +57,14 @@ initial begin
 			$finish;
 		end
 
+		#345;//время на зашифрование одного блока данных
+
 		f = $fread(fodata, file);#1;
 		if (f == 0) begin
 			$error("Output data is empty");
 			$finish;
 		end
-
-		#345;//время на зашифрование одного блока данных
+		
 		if (m_axis_tvalid) begin
 			if(m_axis_tdata == fodata)
 				$display("SUCCESS: input_data: %h \n   odata_file: %h \n  odata_MacG: %h", s_axis_tdata, fodata, m_axis_tdata);
