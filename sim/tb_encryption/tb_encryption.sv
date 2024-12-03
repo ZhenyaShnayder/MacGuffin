@@ -15,14 +15,11 @@ module tb_encryption;
     logic m_axis_tvalid;
     logic m_axis_tready;
 
-    logic [63:0] tb_o;
-    logic [63:0] popf;
-    logic [63:0] tb_odata [$];
+    logic [63:0] tb_odata;
 
     logic qu [$];
     logic s_tvalid = 0;
 
-    parameter COUNT_RANDOM_TESTCASES = 100; //не более 100 (в файле 100 тесткейсов)
     parameter bubbles = 32'b10100100001000000001000000000001;
     int bubbles_size = 0;
 
@@ -31,17 +28,37 @@ module tb_encryption;
         $dumpvars(0, tb_encryption);
     end
 
-    int count_read_bytes;
+    int count_read_bytes = 1;
+    int count_read_f_cipher_text = 1;
     int count = 0;
-    reg [31:0] file;
+    reg [31:0] f_round_keys;
+    reg [31:0] f_plain_text;
+    reg [31:0] f_cipher_text;
+    int i;
 
     initial begin
 
-        file = $fopen("testcases2.bin", "r");
-        if (file)
-            $display("File was opened successfully");
+        f_round_keys = $fopen("round_keys.bin", "r");
+        if (f_round_keys)
+            $display("SUCCESS: File round_keys was opened.");
         else begin      
-            $display("File was NOT opened successfully");
+            $display("FAILURE: File round_keys was NOT opened.");
+            $finish;
+        end
+
+        f_plain_text = $fopen("plain_text.bin", "r");
+        if (f_plain_text)
+            $display("SUCCESS: File plain_text was opened.");
+        else begin      
+            $display("FAILURE: File plain_text was NOT opened.");
+            $finish;
+        end
+
+        f_cipher_text = $fopen("cipher_text.bin", "r");
+        if (f_cipher_text)
+            $display("SUCCESS: File cipher_text was opened.");
+        else begin      
+            $display("FAILURE: File cipher_text was NOT opened.");
             $finish;
         end
 
@@ -57,7 +74,7 @@ module tb_encryption;
 
         m_axis_tready <= 1'b1;
 
-        count_read_bytes = $fread(round_keys, file); //считываем с файла 32 раундовых 48-битных ключа
+        count_read_bytes = $fread(round_keys, f_round_keys); //считываем с файла 32 раундовых 48-битных ключа
 
         //проверка продолжительности шифрования блока
         s_axis_tdata = {32'b1, 32'b0}; //считываем блок ОТ (64 бита)
@@ -72,7 +89,7 @@ module tb_encryption;
         m_axis_tready = 1'b0;
         count = 0;
         while (s_axis_tready != 0) begin
-            @(posedge clk);    
+            @(posedge clk);
             count = count + 1;
         end
         $display("От обновления m_axis_tready до обновления s_axis_tready проходит %2d такта(-ов)\n", count - 1);
@@ -81,7 +98,7 @@ module tb_encryption;
         m_axis_tready = 1'b1;
         count = 0;
 
-        #320;
+        @(posedge clk);
 
         while (s_axis_tready & count < 30) begin
             @(posedge clk) begin
@@ -103,9 +120,10 @@ module tb_encryption;
             end
         end
 
-      m_axis_tready = 0;
-      s_axis_tvalid = 0;
-      s_axis_tdata = 0;
+    //проверка на схлопывание пузырьков
+        m_axis_tready = 0;
+        s_axis_tvalid = 0;
+        s_axis_tdata = 0;
 
         @(posedge clk); #1;
 		    rst = 1'b1;
@@ -131,7 +149,6 @@ module tb_encryption;
         m_axis_tready = 1'b1; //и наблюдаем на выходе только valid блоки
         for(int k = 0; k < bubbles_size; k++) begin
             @(posedge clk);
-//            $display("%h", m_axis_tdata);
         end
 
         //проверка корректной работы модуля encryption
@@ -144,30 +161,30 @@ module tb_encryption;
 	    @(posedge clk); #1;
 		    rst = 1'b0;
 
-
         m_axis_tready = 1;
-        for(int  i = 0; i < COUNT_RANDOM_TESTCASES; i++) begin
-                @(posedge clk);
-                count_read_bytes = $fread(s_axis_tdata, file); #1;
-                s_axis_tvalid <= 1; #1;
-                count_read_bytes = $fread(tb_o, file); #1;                
-                tb_odata.push_back(tb_o); #1;
+        s_axis_tvalid = 1;
 
-            if (i > 30) begin
-                popf = tb_odata.pop_front();
-                if (m_axis_tdata != popf)
-                    $display("FAILED %1d", i);
-            end
+        for(i = 0; (i < 31) && count_read_bytes; i++) begin
+            @(posedge clk);
+            count_read_bytes <= $fread(s_axis_tdata, f_plain_text); #1;
+            s_axis_tvalid <= 1; #1;
         end
-        while(tb_odata.size()) begin
-            @(posedge clk); #1;
-            popf = tb_odata.pop_front();
-            if (m_axis_tdata != popf)
-                $display("FAILED");
+        while (count_read_f_cipher_text) begin
+        if (count_read_bytes)
+            count_read_bytes <= $fread(s_axis_tdata, f_plain_text); #1;
+        s_axis_tvalid <= 1; #1;
+        @(posedge clk);
+        count_read_f_cipher_text <= $fread(tb_odata, f_cipher_text); #1;
+        if (m_axis_tdata != tb_odata)
+            $display("FAILED");
         end
-        $fclose(file);
-    $finish;
+
+        $fclose(f_round_keys);
+        $fclose(f_cipher_text);
+        $fclose(f_plain_text);
+        $finish;
     end
+
 
 always #5 clk = ~clk;
 
