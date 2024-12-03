@@ -35,7 +35,7 @@ function logic [47:0] my_permutation(
 		
 endfunction
 
-	parameter LENGTH = 1 << 48;
+	parameter LENGTH = 1 << 47;
 	logic[47:0] temp, my_p;	
 	
 initial begin
