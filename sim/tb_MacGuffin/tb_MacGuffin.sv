@@ -36,42 +36,43 @@ initial begin
 	@(posedge clk); #1;
 	rst = 1'b0;
 
-
 //Проверка на корректность зашифрования
-	m_axis_tready = 1;
 	f = $fread(key, file);
 	if (f == 0) begin
 		$error("Key is empty");
 		$finish;
 	end
-	
+	m_axis_tready = 1'b1;
 	@(s_axis_tready);//подготовка раундовых ключей
+	s_axis_tvalid = 1'b1;#1;
 
 	for(int i = 0; i < 100; i = i + 1) begin
 		@(posedge clk);
+		s_axis_tvalid = 1'b0;#1;
+		m_axis_tready = 1'b0;#1;
 
 		f = $fread(s_axis_tdata, file);#1;
-		s_axis_tvalid = 1'b1;#1;
 		if (f == 0) begin
 			$error("Input data is empty");
 			$finish;
 		end
-
-		#345;//время на зашифрование одного блока данных
-
+		s_axis_tvalid = 1'b1;#1;
+		m_axis_tready = 1'b1;#1;
+		
+		@(m_axis_tvalid);
+		s_axis_tvalid = 1'b0;
+		
 		f = $fread(fodata, file);#1;
 		if (f == 0) begin
 			$error("Output data is empty");
 			$finish;
 		end
-		
-		if (m_axis_tvalid) begin
+
+		@(m_axis_tvalid);
 			if(m_axis_tdata == fodata)
 				$display("SUCCESS: input_data: %h \n   odata_file: %h \n  odata_MacG: %h", s_axis_tdata, fodata, m_axis_tdata);
 			else 
 				$display("ERROR: input_data: %h \n   odata_file: %h \n  odata_MacG: %h", s_axis_tdata, fodata, m_axis_tdata);
-		end
-
 	end
 
     $fclose(file); 
