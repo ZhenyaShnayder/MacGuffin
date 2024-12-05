@@ -50,7 +50,11 @@ initial begin
 		m_axis_tready = 1'b0;#1;
 		@(posedge clk);#1;
 
-		f = $fread(s_axis_tdata, file);#1;
+		while (s_axis_tready==0) begin
+			 @(posedge clk);
+		end
+
+		f = $fread(s_axis_tdata, file);
 		if (f == 0) begin
 			$error("Input data is empty");
 			$finish;
