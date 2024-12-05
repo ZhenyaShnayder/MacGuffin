@@ -5,7 +5,7 @@ module top (
   input logic rxd,
   output logic txd
 );
-  parameter [47:0]initial_key = 48'h0;
+  parameter [127:0]initial_key = 128'h1748a65f73b56f5eafecc84639475860;
   logic my_clk, my_rst, inv_rst;
   logic [63:0] crypt_s_axis_tdata, crypt_m_axis_tdata;
   logic crypt_s_axis_tvalid, crypt_s_axis_tready;
@@ -14,8 +14,8 @@ module top (
   logic uart_s_axis_tvalid, uart_s_axis_tready;
   logic uart_m_axis_tvalid, uart_m_axis_tready;
 
-
-  synchronizer #(
+//L14 - 4 лампочка
+  synchronizer #( // чем тактируется?
     .STAGES(5)
   ) rst_synchr (
     .rst(0),
@@ -26,9 +26,9 @@ module top (
   assign my_rst = ~inv_rst;
 
   Gowin_rPLL rPLL_instance( //
-    .clkout(my_clk), //output clkout
+    .clkout(my_clk),    //output clkout
     .reset(my_rst),     //input reset
-    .clkin(clk)      //input clkin
+    .clkin(clk)         //input clkin
   );
 
   uart uart_instance( //
