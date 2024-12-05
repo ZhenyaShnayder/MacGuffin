@@ -65,8 +65,7 @@ initial begin
 		@(posedge clk);#1;
 		s_axis_tvalid = 1'b0;
 		
-		@(m_axis_tvalid);
-		#1;
+		@(m_axis_tvalid);#1;
 		
 		f = $fread(fodata, file);#1;
 		if (f == 0) begin
@@ -81,6 +80,40 @@ initial begin
 		m_axis_tready = 1'b1;
 		@(posedge clk);#1;
 	end
+
+    $fclose(file); 
+
+
+//Проверка конвейера
+	file = $fopen("tests.bin", "r");
+		s_axis_tvalid = 1'b0;#1;
+		m_axis_tready = 1'b0;#1;
+		@(posedge clk);#1;
+
+		s_axis_tvalid = 1'b1;#1;
+		@(posedge clk);#1;
+
+		for(int i = 0; (i < 100) && (s_axis_tready!=0) ; i = i + 1) begin
+			f = $fread(s_axis_tdata, file);
+			if (f == 0) begin
+				$error("Input data is empty");
+				$finish;
+			end
+			@(posedge clk);
+		end
+
+		if (s_axis_tready==0) begin
+			$display("The pipeline is full!");
+		end
+		
+		m_axis_tready = 1'b1;
+		@(posedge clk);#1;
+		s_axis_tvalid = 1'b0;
+		
+		@(m_axis_tvalid);#1;
+
+		m_axis_tready = 1'b1;
+		@(posedge clk);#1;
 
     $fclose(file); 
 	$finish;
