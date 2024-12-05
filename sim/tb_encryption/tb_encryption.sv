@@ -86,13 +86,13 @@ module tb_encryption;
         $display("Шифрование одного блока занимает %2d такта(-ов)\n", count - 1);
 
         //проверка быстроты обновления s_axis_tready
-        m_axis_tready = 1'b0;
+        m_axis_tready = 1'b0; #1;
         count = 0;
         while (s_axis_tready != 0) begin
             @(posedge clk);
             count = count + 1;
         end
-        $display("От обновления m_axis_tready до обновления s_axis_tready проходит %2d такта(-ов)\n", count - 1);
+        $display("От обновления m_axis_tready до обновления s_axis_tready проходит %2d такта(-ов)\n", count);
 
         //проверка соответствия последовательностей s_axis_tvalid и m_axis_tvalid
         m_axis_tready = 1'b1;
