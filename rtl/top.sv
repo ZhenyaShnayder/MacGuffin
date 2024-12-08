@@ -3,7 +3,6 @@ module top (
   input logic clk,
 
   input logic rxd,
-  output led,
   output logic txd
 );
   // LED0 - C13
@@ -12,7 +11,6 @@ module top (
   // LED3 - N14
   // LED4 - L14
   // LED5 - L16
-  assign led = inv_rst;
 
   parameter [127:0]initial_key = 128'hcafebabecafebabecafebabecafebabe;
   logic my_clk, my_rst, inv_rst;
@@ -27,10 +25,10 @@ module top (
 
 //L14 - 4 лампочка
   synchronizer #( // чем тактируется?
-    .STAGES(5)
+    .STAGES(6)
   ) rst_synchr (
     .rst(0),
-    .clk(clk),
+    .clk(my_clk),
     .d(rst_n),
     .q(inv_rst)
   );
@@ -75,44 +73,15 @@ module top (
     .m_axis_tready(crypt_m_axis_tready)
   );
 
-
-/*
-assign crypt_m_axis_tdata = crypt_s_axis_tdata;
-assign crypt_m_axis_tvalid = crypt_s_axis_tvalid;
-assign crypt_s_axis_tready = crypt_m_axis_tready;
-assign crypt_m_axis_tlast = crypt_s_axis_tlast;
-*/
-/*
-assign uart_m_axis_tdata = uart_s_axis_tdata;
-assign uart_m_axis_tvalid = uart_s_axis_tvalid;
-assign uart_s_axis_tready = uart_m_axis_tready;
-*/
-  logic [2:0]count = 0;
-  always@(posedge my_clk) begin
-    if (my_rst)
-      count<='0;
-    else if(uart_m_axis_tvalid)
-      count<=count+1'b1;
-  end
-
-  assign uart_m_axis_tlast = (&count) && uart_m_axis_tvalid;
-
   axis_fifo_adapter #(
-    .DEPTH(8),
+    .DEPTH(16),
     .S_DATA_WIDTH(8),
     .M_DATA_WIDTH(64),
-    .S_KEEP_ENABLE(0),
-    .M_KEEP_ENABLE(0),
     .USER_ENABLE(0),
-    .RAM_PIPELINE(1),
-
-    .FRAME_FIFO(1)
+    .RAM_PIPELINE(1)
   ) crypt_IN (
     .rst(my_rst),
     .clk(my_clk),
-
-    .s_axis_tlast(uart_m_axis_tlast),
-    .m_axis_tlast(crypt_s_axis_tlast),
 
     .s_axis_tdata(uart_m_axis_tdata),
     .s_axis_tvalid(uart_m_axis_tvalid),
@@ -124,16 +93,16 @@ assign uart_s_axis_tready = uart_m_axis_tready;
   );
 
   axis_fifo_adapter #(
-    .DEPTH(8),
+    .DEPTH(16),
     .S_DATA_WIDTH(64),
     .M_DATA_WIDTH(8),
-    .S_KEEP_ENABLE(0),
-    .M_KEEP_ENABLE(0),
     .USER_ENABLE(0),
     .RAM_PIPELINE(1)
   ) crypt_OUT (
     .rst(my_rst),
     .clk(my_clk),
+
+    .s_axis_tkeep('1),
 
     .s_axis_tdata(crypt_m_axis_tdata),
     .s_axis_tvalid(crypt_m_axis_tvalid),
@@ -143,10 +112,6 @@ assign uart_s_axis_tready = uart_m_axis_tready;
     .m_axis_tvalid(uart_s_axis_tvalid),
     .m_axis_tready(uart_s_axis_tready)
 
-
-
   );
-
-
 
 endmodule;
